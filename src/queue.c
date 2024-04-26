@@ -20,21 +20,21 @@ struct pcb_t * dequeue(struct queue_t * q) {
          * in the queue [q] and remember to remove it from q
          * */
         if(q->size > 0){
-                uint32_t Max = q->proc[0]->priority;
-                int position = 0;
-                for(int i = 1; i < q->size; i++){
-                        if(q->proc[i]->priority > Max){
-                                Max = q->proc[i]->priority;
-                                position = i;
-                        }
-                }
-                struct pcb_t* res = q->proc[position];
-                q->proc[position] = NULL;
-                for(int i = position; i < q->size; i++){
-                        q->proc[i] = q->proc[i+1];
-                }
-                q->size--;
-                return res;
+		unsigned long Max_priority = q->proc[0]->priority;
+	        unsigned long position = 0;
+		for(unsigned long i = 1; i < q->size; i++){
+                	if(q->proc[i]->priority < Max_priority){
+				Max_priority = q->proc[i]->priority;
+				position = i;
+			}
+		}
+		struct pcb_t * res = q->proc[position];
+		for(unsigned long i = position; i < q->size; i++){
+			q->proc[i] = q->proc[i+1];
+		}
+		q->size--;
+		q->proc[q->size] = NULL;
+		return res;
         }else{return NULL;}
 }
 
