@@ -11,6 +11,11 @@ void enqueue(struct queue_t * q, struct pcb_t * proc) {
         if(q->size < MAX_QUEUE_SIZE)
         {
                 q->proc[q->size] = proc;
+                #ifdef MLQ_SCHED
+                if(proc->priority != proc->prio){
+                        proc->priority = proc->prio;
+                }
+                #endif
                 q->size ++;
         }
 }
@@ -33,7 +38,6 @@ struct pcb_t * dequeue(struct queue_t * q) {
 			q->proc[i] = q->proc[i+1];
 		}
 		q->size--;
-		q->proc[q->size] = NULL;
 		return res;
         }else{return NULL;}
 }
