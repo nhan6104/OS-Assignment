@@ -25,7 +25,7 @@ int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct *rg_elmt)
     rg_elmt->rg_next = rg_node;
 
   /* Enlist the new region */
-  mm->mmap->vm_freerg_list = &rg_elmt;
+  mm->mmap->vm_freerg_list = rg_elmt;
 
   return 0;
 }
@@ -207,7 +207,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     }
     
     vicpte = caller->mm->pgd[vicpgn];
-    vicpgn = PAGING_FPN(vicpte);
+    vicfpn = PAGING_FPN(vicpte);
 
     /*idx for mswp*/
     int i = 0;
@@ -238,7 +238,10 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
       }
     }
   else
+  {
     __swap_cp_page(caller -> mram, vicfpn, caller->active_mswp, swpfpn);
+
+  }
 
 
     /* Copy target frame from swap to mem */
@@ -515,7 +518,7 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
 
 /*find_victim_page - find victim page
  *@caller: caller
- *@pgn: return page number
+ *@retpgn: return page number
  *
  */
 int find_victim_page(struct mm_struct *mm, int *retpgn) 
@@ -527,8 +530,8 @@ int find_victim_page(struct mm_struct *mm, int *retpgn)
     return -1;
   }
 
-  while (pg->pg_next && pg->pg_next->pg_next)
-  pg = pg->pg_next;
+  while (pg->pg_next != NULL)
+    pg = pg->pg_next;
 
   if (pg->pg_next)
   {
