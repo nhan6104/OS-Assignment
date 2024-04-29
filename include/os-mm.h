@@ -1,6 +1,6 @@
 #ifndef OSMM_H
 #define OSMM_H
-
+#include <semaphore.h>
 #define MM_PAGING
 #define PAGING_MAX_MMSWP 4 /* max number of supported swapped space */
 #define PAGING_MAX_SYMTBL_SZ 30
@@ -55,6 +55,8 @@ struct mm_struct {
 
    /* list of free page */
    struct pgn_t *fifo_pgn;
+
+   sem_t memlock;
 };
 
 /*
@@ -80,6 +82,8 @@ struct memphy_struct {
    /* Management structure */
    struct framephy_struct *free_fp_list;
    struct framephy_struct *used_fp_list;
+
+   sem_t memphylock;
 };
 
 #endif

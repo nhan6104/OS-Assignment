@@ -86,35 +86,38 @@ int vmap_page_range(struct pcb_t *caller, // process call
               struct vm_rg_struct *ret_rg)// return mapped region, the real mapped fp
 {                                         // no guarantee all given pages are mapped
   //uint32_t * pte = malloc(sizeof(uint32_t));
-  struct framephy_struct *fpit = (struct framephy_struct*) malloc(sizeof(struct framephy_struct));
-  //int  fpn;
+  struct framephy_struct *fpit ;
+  int  fpn;
   int pgit = 0;
   int pgn = PAGING_PGN(addr);
 
   ret_rg->rg_end = ret_rg->rg_start = addr; // at least the very first space is usable
 
-  fpit->fp_next = frames;
+  fpit = frames;
   /* TODO map range of frame to address space 
    *      [addr to addr + pgnum*PAGING_PAGESZ
    *      in page table caller->mm->pgd[]
    */
+  uint32_t * pte = malloc(sizeof(uint32_t));
+  init_pte(pte, 1, 1, 0, 0, 0, 0);
+  for (;pgit < pgnum; pgit++)
+  {
+    fpn = fpit -> fpn;
+    pte_set_swap(pte, 0, 0);
+    pte_set_fpn(pte, fpn);
 
-  for (pgit = 0; pgit < pgnum; pgit ++) {
+    caller->mm->pgd[pgn + pgit] = *pte;
+    ret_rg->rg_end += PAGING_PAGESZ;
     fpit = fpit->fp_next;
-    int result = addr + pgit * PAGING_PAGESZ;
-    pgn = PAGING_PGN(result);
-    if (fpit) 
-    {
-      pte_set_fpn(&(caller->mm->pgd[pgn]), fpit->fpn);
 
-      /* Tracking for later page replacement activities (if needed)
-      * Enqueue new usage page */
-      enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
-    }
+    enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
   }
 
+  free(pte);
+  caller->mram->used_fp_list = frames;
 
-  ret_rg->rg_end += (pgit - 1)*PAGING_PAGESZ;
+  /* Tracking for later page replacement activities (if needed)
+  * Enqueue new usage page */
 
   return 0;
 }
@@ -134,65 +137,16 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
   for(pgit = 0; pgit < req_pgnum; pgit++)
   {
     if(MEMPHY_get_freefp(caller->mram, &fpn) == 0)
-    {  
-      newfp_str = (struct framephy_struct*) malloc (sizeof(struct framephy_struct));
+    {
+      newfp_str = malloc(sizeof(struct framephy_struct));
       newfp_str->fpn = fpn;
-      newfp_str->owner = caller->mm;
-      if (!*frm_lst)
-        *frm_lst = newfp_str;
-      else
-      {
-        newfp_str->fp_next = caller->mram->used_fp_list;
-        caller->mram->used_fp_list = newfp_str;
-      }
-    } 
-    else 
-    {  // ERROR CODE of obtaining somes but not enough frames
-        int victim_fpn, victim_pgn, victim_pte;
-        int swpfpn = -1;
-        if (find_victim_page(caller->mm, &victim_pgn) < 0)
-          return -1;
-        victim_pte = caller->mm->pgd[victim_pgn];
-        victim_fpn = PAGING_FPN(victim_pte);
-        newfp_str = (struct framephy_struct*) malloc(sizeof(struct framephy_struct));
-        newfp_str->fpn = victim_fpn;
-        newfp_str->owner = caller->mm;
-      if (!*frm_lst)
-        *frm_lst = newfp_str;
-      else
-      {
-        newfp_str->fp_next = *frm_lst;
-        *frm_lst = newfp_str;
-      }
-
-      int i = 0;
-      if (MEMPHY_get_freefp(caller->active_mswp, &swpfpn) == 0)
-      {
-        __swap_cp_page(caller->mram, victim_fpn, caller->active_mswp, swpfpn); //copy content an victim frame to swap memory space
-        struct memphy_struct *mswp = (struct memphy_struct*)caller->mswp;
-        for (i = 0; i < PAGING_MAX_MMSWP; i++)
-        {
-          if (mswp + i == caller->active_mswp)
-            break;
-        }
-      }
-      else
-      {
-        // struct memphy_struct *mswp = (struct memphy_struct*)caller->mswp;
-        // swpfpn = -1;
-        // for (i = 0; i < PAGING_MAX_MMSWP; i++)
-        // {
-        //   if (MEMPHY_get_freefp (mswp + i, &swpfpn) == 0)
-        //   {
-        //     __swap_cp_page(caller->mram, victim_fpn, mswp + i, swpfpn); //copy content an victim frame to swap memory space
-        //     break;
-        //   }
-        // }      
-        return -1;
-      }
-      if(swpfpn == -1)
-        return -1;
-      pte_set_swap(&caller->mm->pgd[victim_pgn], i, swpfpn);
+      newfp_str->fp_next = *frm_lst;
+      *frm_lst = newfp_str;  
+    }
+    else
+    { 
+      printf("Not enough frames \n");
+      return -3000;
     }
   }
   return 0;
