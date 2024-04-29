@@ -1,12 +1,12 @@
 //#ifdef MM_PAGING
 /*
  * PAGING based Memory Management
- * Memory physical module mm/mm-memphy.c
+ * Memory physical module 
+ * /mm-memphy.c
  */
 
 #include "mm.h"
 #include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
 
 /*
@@ -24,7 +24,6 @@ int MEMPHY_mv_csr(struct memphy_struct *mp, int offset)
      mp->cursor = (mp->cursor + 1) % mp->maxsz;
      numstep++;
    }
-
    return 0;
 }
 
@@ -75,16 +74,20 @@ int MEMPHY_read(struct memphy_struct * mp, int addr, BYTE *value)
  */
 int MEMPHY_seq_write(struct memphy_struct * mp, int addr, BYTE value)
 {
-
+  
    if (mp == NULL)
      return -1;
 
-   if (!mp->rdmflg)
-     return -1; /* Not compatible mode for sequential read */
+   if (!mp->rdmflg){
+       
+      return -1;
+   }
+      /* Not compatible mode for sequential read */
 
    MEMPHY_mv_csr(mp, addr);
+   //sem_wait(&mp->memphylock);
    mp->storage[addr] = value;
-
+   //sem_post(&mp->memphylock);
    return 0;
 }
 
@@ -96,14 +99,18 @@ int MEMPHY_seq_write(struct memphy_struct * mp, int addr, BYTE value)
  */
 int MEMPHY_write(struct memphy_struct * mp, int addr, BYTE data)
 {
-   if (mp == NULL)
-     return -1;
+   if (mp == NULL){
+       
+       return -1;
+   }
 
-   if (mp->rdmflg)
+   if (mp->rdmflg){
+      
       mp->storage[addr] = data;
+
+   } 
    else /* Sequential access device */
       return MEMPHY_seq_write(mp, addr, data);
-
    return 0;
 }
 
@@ -159,26 +166,21 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
 
 int MEMPHY_dump(struct memphy_struct * mp)
 {
-      /*TODO dump memphy contnt mp->storage 
-      *     for tracing the memory content
+    /*TODO dump memphy contnt mp->storage 
+     *     for tracing the memory content
      */
-      char result[100];
-      strcpy(result, "Memory content - [pos, content]:");
-      char temp[100];
-      if (mp && mp->storage)
+     printf("================MEMORY TEST=================\n");
+    for (int addr = 0; addr < mp->maxsz; addr++)
+    {
+      if (mp->storage[addr] != 0)
       {
-         for (int i = 0; i < mp->maxsz; i++)
-         {
-            if (mp->storage[i]!=(char)0)
-            {
-               sprintf(temp, "[%d, %d]", i, mp->storage[i]);
-               strcat(result, temp);
-            }
-         }
-         strcat(result, "\n\0");
+         
+         printf("Content at address %d : %d\n", addr, mp->storage[addr]);
       }
-   printf("%s", result);
-   return 0;
+    }
+    printf("============================================\n");
+
+    return 0;
 }
 
 int MEMPHY_put_freefp(struct memphy_struct *mp, int fpn)
