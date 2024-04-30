@@ -3,7 +3,7 @@
 #include "sched.h"
 #include "loader.h"
 #include "mm.h"
-
+#include <semaphore.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -253,6 +253,7 @@ int main(int argc, char * argv[]) {
 
 	/* Create MEM RAM */
 	init_memphy(&mram, memramsz, rdmflag);
+	sem_init(&mram.memphylock, 0, 1);
 
 	/* Create all MEM SWAP */ 
 	int sit;

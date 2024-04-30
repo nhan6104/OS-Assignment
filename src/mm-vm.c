@@ -80,6 +80,7 @@ struct vm_rg_struct *get_symrg_byid(struct mm_struct *mm, int rgid)
 int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr)
 {
   /*Allocate at the toproof */
+  sem_wait(&caller->mm->memlock);
   struct vm_rg_struct rgnode;
 
   if (get_free_vmrg_area(caller, vmaid, size, &rgnode) == 0)
@@ -88,7 +89,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
     caller->mm->symrgtbl[rgid].rg_end = rgnode.rg_end;
 
     *alloc_addr = rgnode.rg_start;
-
+    sem_post(&caller->mm->memlock);
     return 0;
   }
 
@@ -109,6 +110,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
 
   if ( inc_vma_limit(caller, vmaid, inc_sz))
   {
+    sem_post(&caller->mm->memlock);
     return -1;
   }
 
@@ -122,6 +124,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   {
     cur_vma->vm_freerg_list->rg_start = old_sbrk + size;
     cur_vma->vm_freerg_list->rg_end = cur_vma->sbrk;
+    sem_post(&caller->mm->memlock);
   }
   else
   {
@@ -131,7 +134,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
 
     enlist_vm_freerg_list(caller->mm, &rg_elmt_pointer);
   }
-
+  sem_post(&caller->mm->memlock);
   *alloc_addr = old_sbrk;
   return 0;
 }
@@ -145,19 +148,23 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
  */
 int __free(struct pcb_t *caller, int vmaid, int rgid)
 {
-  struct vm_rg_struct *rgnode;
+  sem_wait(&caller->mm->memlock);
+  struct vm_rg_struct rgnode = *get_symrg_byid(caller->mm, rgid); //find region neeed to free by id
+  rgnode.rg_next = NULL;
 
   if(rgid < 0 || rgid > PAGING_MAX_SYMTBL_SZ)
-    return -1;
+  {
+    sem_post(&caller->mm->memlock);
+      return -1;
+  }
 
   /* TODO: Manage the collect freed region to freerg_list */
-  rgnode = get_symrg_byid(caller->mm, rgid); //find region neeed to free by id
-  rgnode->rg_next = NULL;
 
   /*enlist the obsoleted memory region */
   caller->mm->symrgtbl[rgid].rg_start = 0;
   caller->mm->symrgtbl[rgid].rg_end = 0;
-  enlist_vm_freerg_list(caller->mm, rgnode); // bo vung trong vao danh sach vung nho trong
+  sem_post(&caller->mm->memlock);
+  enlist_vm_freerg_list(caller->mm, &rgnode); // bo vung trong vao danh sach vung nho trong
 
   // rgnode->rg_start = rgnode -> rg_end = -1;
 
@@ -235,15 +242,15 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     pte_set_fpn(&pte, tgtfpn);
 
     //keep tracking
-    enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
+    // enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
 
 #ifdef CPU_TLB
     /* Update its online status of TLB (if needed) */
 #endif
 
     // //keep tracking
-    // enlist_pgn_node(&caller->mm->fifo_pgn,pgn);
-    // pte = caller->mm->pgd[pgn];
+    enlist_pgn_node(&caller->mm->fifo_pgn,pgn);
+    pte = caller->mm->pgd[pgn];
 
   }
 
