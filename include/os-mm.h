@@ -1,9 +1,10 @@
 #ifndef OSMM_H
 #define OSMM_H
-#include <semaphore.h>
+
 #define MM_PAGING
 #define PAGING_MAX_MMSWP 4 /* max number of supported swapped space */
 #define PAGING_MAX_SYMTBL_SZ 30
+#include <semaphore.h>
 
 typedef char BYTE;
 typedef uint32_t addr_t;
@@ -55,7 +56,7 @@ struct mm_struct {
 
    /* list of free page */
    struct pgn_t *fifo_pgn;
-
+   //lock
    sem_t memlock;
 };
 
@@ -65,7 +66,7 @@ struct mm_struct {
 struct framephy_struct { 
    int fpn;
    struct framephy_struct *fp_next;
-
+   
    /* Resereed for tracking allocated framed */
    struct mm_struct* owner;
 };
@@ -75,6 +76,7 @@ struct memphy_struct {
    BYTE *storage;
    int maxsz;
    
+   sem_t memphylock;
    /* Sequential device fields */ 
    int rdmflg;
    int cursor;
@@ -82,8 +84,6 @@ struct memphy_struct {
    /* Management structure */
    struct framephy_struct *free_fp_list;
    struct framephy_struct *used_fp_list;
-
-   sem_t memphylock;
 };
 
 #endif

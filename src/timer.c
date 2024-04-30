@@ -2,6 +2,7 @@
 #include "timer.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <semaphore.h>
 
 static pthread_t _timer;
 
@@ -20,7 +21,9 @@ static int timer_stop = 0;
 
 static void * timer_routine(void * args) {
 	while (!timer_stop) {
+		
 		printf("Time slot %3lu\n", current_time());
+		
 		int fsh = 0;
 		int event = 0;
 		/* Wait for all devices have done the job in current
@@ -64,7 +67,7 @@ void next_slot(struct timer_id_t * timer_id) {
 	timer_id->done = 1;
 	pthread_cond_signal(&timer_id->event_cond);
 	pthread_mutex_unlock(&timer_id->event_lock);
-
+	
 	/* Wait for going to next slot */
 	pthread_mutex_lock(&timer_id->timer_lock);
 	while (timer_id->done) {
@@ -86,10 +89,12 @@ void start_timer() {
 }
 
 void detach_event(struct timer_id_t * event) {
+	
 	pthread_mutex_lock(&event->event_lock);
 	event->fsh = 1;
 	pthread_cond_signal(&event->event_cond);
 	pthread_mutex_unlock(&event->event_lock);
+	
 }
 
 struct timer_id_t * attach_event() {

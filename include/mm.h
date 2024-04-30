@@ -11,7 +11,7 @@
 
 #define PAGING_MEMSWPSZ BIT(14) /* 16MB */
 #define PAGING_SWPFPN_OFFSET 5  
-#define PAGING_MAX_PGN  (DIV_ROUND_UP(BIT(PAGING_CPU_BUS_WIDTH),PAGING_PAGESZ))
+#define PAGING_MAX_PGN  (DIV_ROUND_UP(PAGING_CPU_BUS_WIDTH,PAGING_PAGESZ))
 
 #define PAGING_SBRK_INIT_SZ PAGING_PAGESZ
 /* PTE BIT */
@@ -39,7 +39,7 @@
 #define PAGING_PTE_SWPOFF_LOBIT 5
 #define PAGING_PTE_SWPOFF_HIBIT 25
 
-/* PTE masks */
+
 #define PAGING_PTE_USRNUM_MASK GENMASK(PAGING_PTE_USRNUM_HIBIT,PAGING_PTE_USRNUM_LOBIT)
 #define PAGING_PTE_FPN_MASK    GENMASK(PAGING_PTE_FPN_HIBIT,PAGING_PTE_FPN_LOBIT)
 #define PAGING_PTE_SWPTYP_MASK GENMASK(PAGING_PTE_SWPTYP_HIBIT,PAGING_PTE_SWPTYP_LOBIT)
@@ -54,7 +54,7 @@
 #define PAGING_ADDR_PGN_HIBIT (PAGING_CPU_BUS_WIDTH - 1)
 
 /* Frame PHY Num */
-#define PAGING_ADDR_FPN_LOBIT NBITS(PAGING_PAGESZ)
+#define PAGING_ADDR_FPN_LOBIT 0
 #define PAGING_ADDR_FPN_HIBIT (NBITS(PAGING_MEMRAMSZ) - 1)
 
 /* SWAPFPN */
@@ -69,7 +69,7 @@
 #define SETVAL(v,value,mask,offst) (v=(v&~mask)|((value<<offst)&mask))
 #define GETVAL(v,mask,offst) ((v&mask)>>offst)
 
-/* Other masks */
+/* Masks */
 #define PAGING_OFFST_MASK  GENMASK(PAGING_ADDR_OFFST_HIBIT,PAGING_ADDR_OFFST_LOBIT)
 #define PAGING_PGN_MASK  GENMASK(PAGING_ADDR_PGN_HIBIT,PAGING_ADDR_PGN_LOBIT)
 #define PAGING_FPN_MASK  GENMASK(PAGING_ADDR_FPN_HIBIT,PAGING_ADDR_FPN_LOBIT)
@@ -116,18 +116,6 @@ int __read(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE *data);
 int __write(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE value);
 int init_mm(struct mm_struct *mm, struct pcb_t *caller);
 
-/* CPUTLB prototypes */
-int tlb_change_all_page_tables_of(struct pcb_t *proc,  struct memphy_struct * mp);
-int tlb_flush_tlb_of(struct pcb_t *proc, struct memphy_struct * mp);
-int tlballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index);
-int tlbfree_data(struct pcb_t *proc, uint32_t reg_index);
-int tlbread(struct pcb_t * proc, uint32_t source, uint32_t offset, uint32_t destination) ;
-int tlbwrite(struct pcb_t * proc, BYTE data, uint32_t destination, uint32_t offset);
-int init_tlbmemphy(struct memphy_struct *mp, int max_size);
-int TLBMEMPHY_read(struct memphy_struct * mp, int addr, BYTE *value);
-int TLBMEMPHY_write(struct memphy_struct * mp, int addr, BYTE data);
-int TLBMEMPHY_dump(struct memphy_struct * mp);
-
 /* VM prototypes */
 int pgalloc(struct pcb_t *proc, uint32_t size, uint32_t reg_index);
 int pgfree_data(struct pcb_t *proc, uint32_t reg_index);
@@ -164,4 +152,8 @@ int print_list_vma(struct vm_area_struct *rg);
 
 int print_list_pgn(struct pgn_t *ip);
 int print_pgtbl(struct pcb_t *ip, uint32_t start, uint32_t end);
+
+
+
+
 #endif

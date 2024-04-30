@@ -3,15 +3,17 @@
 #include "sched.h"
 #include <pthread.h>
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 static struct queue_t ready_queue;
 static struct queue_t run_queue;
 static pthread_mutex_t queue_lock;
 
+
 #ifdef MLQ_SCHED
 static struct queue_t mlq_ready_queue[MAX_PRIO];
-static unsigned long curr_prio_queue = 0;
+unsigned long curr_prio_queue = 0;
 #endif
 
 int queue_empty(void) {
@@ -26,12 +28,13 @@ int queue_empty(void) {
 
 void init_scheduler(void) {
 #ifdef MLQ_SCHED
-	int i ;
+    int i ;
 
 	for (i = 0; i < MAX_PRIO; i ++){
 		mlq_ready_queue[i].size = 0;
 		mlq_ready_queue[i].slot = MAX_PRIO - i;
 	}
+		
 #endif
 	ready_queue.size = 0;
 	run_queue.size = 0;
@@ -45,37 +48,55 @@ void init_scheduler(void) {
  *  We implement stateful here using transition technique
  *  State representation   prio = 0 .. MAX_PRIO, curr_slot = 0..(MAX_PRIO - prio)
  */
+	
 struct pcb_t * get_mlq_proc(void) {
 	struct pcb_t * proc = NULL;
 	/*TODO: get a process from PRIORITY [ready_queue].
 	 * Remember to use lock to protect the queue.
-	 */
+	 * */
 	if(mlq_ready_queue[curr_prio_queue].slot > 0){
 		unsigned long i;
 		for(i = curr_prio_queue; i < MAX_PRIO;i++){
 			if(mlq_ready_queue[i].size > 0){
 				pthread_mutex_lock(&queue_lock);
 				proc = dequeue(&mlq_ready_queue[i]);
-				mlq_ready_queue[i].slot--;
+				mlq_ready_queue[i].slot --;
 				pthread_mutex_unlock(&queue_lock);
 				return proc;
 			}
+		}
+		for(i = 0; i < curr_prio_queue; i++){
+			if(mlq_ready_queue[i].size > 0){
+                                pthread_mutex_lock(&queue_lock);
+                                proc = dequeue(&mlq_ready_queue[i]);
+                                mlq_ready_queue[i].slot --;
+                                pthread_mutex_unlock(&queue_lock);
+                                return proc;
+                        }
 		}
 	}else{
 		mlq_ready_queue[curr_prio_queue].slot = MAX_PRIO - curr_prio_queue;
 		++curr_prio_queue;
 		if(curr_prio_queue == MAX_PRIO) curr_prio_queue = 0;
 		unsigned long i;
-		for(i = curr_prio_queue; i < MAX_PRIO;i++){
-        	        if(mlq_ready_queue[i].size > 0){
-				pthread_mutex_lock(&queue_lock);
-                	        proc = dequeue(&mlq_ready_queue[i]);
-                	        mlq_ready_queue[i].slot--;
-        	                pthread_mutex_unlock(&queue_lock);
-        	                return proc;
-	                }
-	        }
-
+		 for(i = curr_prio_queue; i < MAX_PRIO;i++){
+                        if(mlq_ready_queue[i].size > 0){
+                                pthread_mutex_lock(&queue_lock);
+                                proc = dequeue(&mlq_ready_queue[i]);
+                                mlq_ready_queue[i].slot --;
+                                pthread_mutex_unlock(&queue_lock);
+                                return proc;
+                        }
+                }
+                for(i = 0; i < curr_prio_queue; i++){
+                        if(mlq_ready_queue[i].size > 0){
+                                pthread_mutex_lock(&queue_lock);
+                                proc = dequeue(&mlq_ready_queue[i]);
+                                mlq_ready_queue[i].slot --;
+                                pthread_mutex_unlock(&queue_lock);
+                                return proc;
+                        }
+                }
 	}
 	return proc;
 }
@@ -87,12 +108,14 @@ void put_mlq_proc(struct pcb_t * proc) {
 }
 
 void add_mlq_proc(struct pcb_t * proc) {
+
 	pthread_mutex_lock(&queue_lock);
 	enqueue(&mlq_ready_queue[proc->prio], proc);
 	pthread_mutex_unlock(&queue_lock);	
 }
 
 struct pcb_t * get_proc(void) {
+	usleep(1);
 	return get_mlq_proc();
 }
 
@@ -112,11 +135,11 @@ struct pcb_t * get_proc(void) {
 	pthread_mutex_lock(&queue_lock);
 	if(ready_queue.empty <= 0){
 		while(run_queue.size > 0){
-			enqueue(&ready_queue,dequeue(&run_queue));
+			enqueue(&ready_queue, dequeue(&run_queue));
 		}
 	}
 	proc = dequeue(&ready_queue);
-	pthread_mutex_unlock(&queue_lock)
+	pthread_mutex_unlock(&queue_lock);
 	return proc;
 }
 
