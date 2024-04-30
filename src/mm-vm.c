@@ -257,6 +257,9 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
   return 0;
 }
 
+#ifdef CPU_TLB
+    /* Update its online status of TLB (if needed) */
+#endif
 /*pg_getval - read value at given offset
  *@mm: memory region
  *@addr: virtual address to acess 

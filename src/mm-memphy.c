@@ -5,6 +5,7 @@
  * /mm-memphy.c
  */
 
+#include "string.h"
 #include "mm.h"
 #include <stdlib.h>
 #include <stdio.h>

@@ -16,7 +16,10 @@
 static int time_slot;
 static int num_cpus;
 static int done = 0;
-extern int print_time_slot;
+
+#ifdef CPU_TLB
+static int tlbsz;
+#endif
 
 #ifdef MM_PAGING
 static int memramsz;
@@ -24,6 +27,7 @@ static int memswpsz[PAGING_MAX_MMSWP];
 
 struct mmpaging_ld_args {
 	/* A dispatched argument struct to compact many-fields passing to loader */
+	struct memphy_struct *tlb;
 	struct memphy_struct *mram;
 	struct memphy_struct **mswp;
 	struct memphy_struct *active_mswp;
@@ -164,11 +168,24 @@ static void read_config(const char * path) {
 		exit(1);
 	}
 	fscanf(file, "%d %d %d\n", &time_slot, &num_cpus, &num_processes);
-	printf("Time slice: %d, Number of CPUs: %d, Number of processes: %d\n",
-		time_slot, num_cpus, num_processes);
 	ld_processes.path = (char**)malloc(sizeof(char*) * num_processes);
 	ld_processes.start_time = (unsigned long*)
 		malloc(sizeof(unsigned long) * num_processes);
+#ifdef CPU_TLB
+#ifdef CPUTLB_FIXED_TLBSZ
+        /* We provide here a back compatible with legacy OS simulatiom config file
+         * In which, it have no addition config line for CPU_TLB
+         */
+        tlbsz = 0x10000;
+#else
+        /* Read input config of TLB size:
+         * Format:
+         *        CPU_TLBSZ
+        */
+        fscanf(file, "%d\n", &tlbsz);
+#endif
+#endif
+
 #ifdef MM_PAGING
 	int sit;
 #ifdef MM_FIXED_MEMSZ
@@ -187,10 +204,8 @@ static void read_config(const char * path) {
 	 *        MEM_RAM_SZ MEM_SWP0_SZ MEM_SWP1_SZ MEM_SWP2_SZ MEM_SWP3_SZ
 	*/
 	fscanf(file, "%d\n", &memramsz);
-	printf("memramsz: %d\n", memramsz);
 	for(sit = 0; sit < PAGING_MAX_MMSWP; sit++){
 		fscanf(file, "%d", &(memswpsz[sit]));
-		printf("memswpsz[%d]: %d\n", sit, memswpsz[sit]); 
 	}
 		
 
@@ -213,9 +228,7 @@ static void read_config(const char * path) {
 #else
 		fscanf(file, "%lu %s\n", &ld_processes.start_time[i], proc);
 #endif
-		strcat(ld_processes.path[i], proc);
-		printf("Start Time: %lu, Process: %s, Priority: %lu\n", ld_processes.start_time[i], proc, ld_processes.prio[i]);
-		
+		strcat(ld_processes.path[i], proc);		
 	}
 	
 }
@@ -246,6 +259,11 @@ int main(int argc, char * argv[]) {
 	struct timer_id_t * ld_event = attach_event();
 	start_timer();
 
+#ifdef CPU_TLB
+	struct memphy_struct tlb;
+	init_tlbmemphy(&tlb, tlbsz);
+#endif
+
 #ifdef MM_PAGING
 	/* Init all MEMPHY include 1 MEMRAM and n of MEMSWP */
 	int rdmflag = 1; /* By default memphy is RANDOM ACCESS MEMORY */
@@ -271,8 +289,14 @@ int main(int argc, char * argv[]) {
 	mm_ld_args->active_mswp = (struct memphy_struct *) &mswp[0];
 #endif
 
-
-
+#ifdef CPU_TLB
+#ifdef MM_PAGING
+        /* In MM_PAGING employ CPU_TLB mode, it needs passing
+         * the system tlb to each PCB through loader
+        */
+        mm_ld_args->tlb = (struct memphy_struct *) &tlb;
+#endif
+#endif
 
 	/* Init scheduler */
 	init_scheduler();

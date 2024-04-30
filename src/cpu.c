@@ -2,7 +2,7 @@
 #include "cpu.h"
 #include "mem.h"
 #include "mm.h"
-#include <stdio.h>
+
 int calc(struct pcb_t * proc) {
 	return ((unsigned long)proc & 0UL);
 }
@@ -59,39 +59,37 @@ int run(struct pcb_t * proc) {
 		stat = calc(proc);
 		break;
 	case ALLOC:
-#ifdef MM_PAGING
-
+#ifdef CPU_TLB 
+		stat = tlballoc(proc, ins.arg_0, ins.arg_1);
+#elif defined(MM_PAGING)
 		stat = pgalloc(proc, ins.arg_0, ins.arg_1);
-		printf("Process ID: %d\n", proc->pid);
-		printf("VMA:\n");
-		print_list_vma(proc->mm->mmap);
-		
 #else
 		stat = alloc(proc, ins.arg_0, ins.arg_1);
 #endif
 		break;
 	case FREE:
-#ifdef MM_PAGING
+#ifdef CPU_TLB
+		stat = tlbfree_data(proc, ins.arg_0);
+#elif defined(MM_PAGING)
 		stat = pgfree_data(proc, ins.arg_0);
-		printf("Process ID: %d\n", proc->pid);
-		printf("Free region:\n");
-		print_list_rg(proc->mm->mmap->vm_freerg_list);
 #else
 		stat = free_data(proc, ins.arg_0);
 #endif
 		break;
 	case READ:
-#ifdef MM_PAGING
+#ifdef CPU_TLB
+		stat = tlbread(proc, ins.arg_0, ins.arg_1, ins.arg_2);
+#elif defined(MM_PAGING)
 		stat = pgread(proc, ins.arg_0, ins.arg_1, ins.arg_2);
-		printf("Process ID: %d\n", proc->pid);
 #else
 		stat = read(proc, ins.arg_0, ins.arg_1, ins.arg_2);
 #endif
 		break;
 	case WRITE:
-#ifdef MM_PAGING
+#ifdef CPU_TLB
+		stat = tlbwrite(proc, ins.arg_0, ins.arg_1, ins.arg_2);
+#elif defined(MM_PAGING)
 		stat = pgwrite(proc, ins.arg_0, ins.arg_1, ins.arg_2);
-		printf("Process ID: %d\n", proc->pid);
 #else
 		stat = write(proc, ins.arg_0, ins.arg_1, ins.arg_2);
 #endif
