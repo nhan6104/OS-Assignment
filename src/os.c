@@ -144,7 +144,6 @@ static void * ld_routine(void * args) {
 		proc->active_mswp = active_mswp;
 		sem_init(&proc->mm->memlock, 0, 1);
 #endif
-		printf("Time slot %3lu is printing\n", current_time());
 		printf("\tLoaded a process at %s, PID: %d PRIO: %ld\n",
 			ld_processes.path[i], proc->pid, ld_processes.prio[i]);
 		add_proc(proc);
