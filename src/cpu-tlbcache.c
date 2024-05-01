@@ -20,6 +20,9 @@
 #include "mm.h"
 #include <stdlib.h>
 
+
+
+
 #define init_tlbcache(mp,sz,...) init_memphy(mp, sz, (1, ##__VA_ARGS__))
 
 /*
@@ -29,13 +32,45 @@
  *  @pgnum: page number
  *  @value: obtained value
  */
-int tlb_cache_read(struct memphy_struct * mp, int pid, int pgnum, BYTE value)
+int tlb_cache_read(struct tlb_cache * mcache, uint32_t vmaddr, uint32_t *frnum)
 {
    /* TODO: the identify info is mapped to 
     *      cache line by employing:
     *      direct mapped, associated mapping etc.
     */
-   return 0;
+   struct tlb_node * ptr = mcache->tlb_head;
+   while (ptr->next != NULL)
+   {
+      if (ptr->memvm == vmaddr)
+      {
+         *frnum = ptr->memphy;
+         
+         // neu vi tri nao duoc goi se nhay len dau dam bao viec kien truc LRU
+         if (ptr != mcache->tlb_head)
+         {
+            if (ptr == mcache->tlb_tail)
+            {
+               mcache->tlb_tail = ptr->prev;
+               mcache->tlb_tail->next = NULL;
+            }
+
+
+            ptr->prev->next = ptr->next;
+            ptr->next->prev =ptr->prev;
+
+            ptr->prev = NULL;
+            ptr->next = mcache->tlb_head;
+            mcache->tlb_head->prev = ptr;
+
+            mcache->tlb_head = ptr;
+         }
+
+         return 0;
+      }
+      ptr = ptr->next;
+   }
+   
+   return -1;
 }
 
 /*
@@ -45,12 +80,94 @@ int tlb_cache_read(struct memphy_struct * mp, int pid, int pgnum, BYTE value)
  *  @pgnum: page number
  *  @value: obtained value
  */
-int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
+int tlb_cache_write(struct tlb_cache *mcache, uint32_t memphy, uint32_t memvm)
 {
    /* TODO: the identify info is mapped to 
     *      cache line by employing:
     *      direct mapped, associated mapping etc.
     */
+
+   struct tlb_node *ptrcheck = mcache->tlb_head;
+   while (ptrcheck != NULL)
+   {
+      if (ptrcheck->memvm == memvm)
+      {
+
+         if (ptrcheck == mcache->tlb_tail)
+         {
+            mcache->tlb_tail = ptrcheck->prev;
+            mcache->tlb_tail->next = NULL;
+         }
+
+         ptrcheck->memphy = memphy;
+
+         ptrcheck->prev->next = ptrcheck->next;
+         ptrcheck->next->prev =ptrcheck->prev;
+
+         ptrcheck->prev = NULL;
+         ptrcheck->next = mcache->tlb_head;
+         mcache->tlb_head->prev = ptrcheck;
+
+         mcache->tlb_head = ptrcheck;
+
+         
+         
+         return 0;
+         
+      }
+      ptrcheck = ptrcheck->next;
+   }
+   
+   if (mcache->count >= mcache->maxsize)
+   {
+      struct tlb_node *node = malloc(sizeof(struct tlb_node));
+      node->memphy = memphy;
+      node->memvm = memvm;
+
+   //fifo
+      node->next = mcache->tlb_head;
+      mcache->tlb_head->prev = node;
+      mcache->tlb_head = node;
+
+      struct tlb_node *tail_tlb = mcache->tlb_tail;
+      mcache->tlb_tail = mcache->tlb_tail->prev;
+      tail_tlb->next = NULL;
+      tail_tlb->prev->next = NULL;
+      
+      free(tail_tlb);
+   }
+   else
+   {
+      if (mcache->tlb_head == NULL)
+      {
+         struct tlb_node *node = malloc(sizeof(struct tlb_node));
+         node->memphy = memphy;
+         node->memvm = memvm;
+
+         node->prev = NULL;
+         node->next = NULL;
+
+         mcache->tlb_head = mcache->tlb_tail = node;
+
+         mcache->count += 1;
+      }
+      else
+      {
+         struct tlb_node *node = malloc(sizeof(struct tlb_node));
+         node->memphy = memphy;
+         node->memvm = memvm;
+
+         node->prev = NULL;
+
+         node->next = mcache->tlb_head;
+         mcache->tlb_head->prev = node;
+         mcache->tlb_head = node;
+
+         mcache->count += 1;
+      }
+      
+   }
+
    return 0;
 }
 
@@ -108,13 +225,11 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
 /*
  *  Init TLBMEMPHY struct
  */
-int init_tlbmemphy(struct memphy_struct *mp, int max_size)
+int init_tlbmemphy(struct tlb_cache *mcache, int max_size)
 {
-   mp->storage = (BYTE *)malloc(max_size*sizeof(BYTE));
-   mp->maxsz = max_size;
-
-   mp->rdmflg = 1;
-
+   mcache->tlb_head = mcache->tlb_tail = NULL;
+   mcache->maxsize = max_size;
+   mcache->count = 0;
    return 0;
 }
 

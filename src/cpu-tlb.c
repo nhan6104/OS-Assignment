@@ -40,8 +40,10 @@ int tlb_flush_tlb_of(struct pcb_t *proc, struct memphy_struct * mp)
 int tlballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
 {
   int addr, val;
-
+  
   /* By default using vmaid = 0 */
+
+  init_tlbmemphy(proc->tlb, 1000);
   val = __alloc(proc, 0, reg_index, size, &addr);
 
   /* TODO update TLB CACHED frame num of the new allocated page(s)*/
@@ -60,7 +62,7 @@ int tlbfree_data(struct pcb_t *proc, uint32_t reg_index)
   __free(proc, 0, reg_index);
 
   /* TODO update TLB CACHED frame num of freed page(s)*/
-  /* by using tlb_cache_read()/tlb_cache_write()*/
+  /* by using tlb_cache_rea d()/tlb_cache_write()*/
 
   return 0;
 }
@@ -76,7 +78,10 @@ int tlbread(struct pcb_t * proc, uint32_t source,
             uint32_t offset, 	uint32_t destination) 
 {
   BYTE data, frmnum = -1;
-	
+	int srcaddr = source + offset;
+
+  tlb_cache_read(proc->tlb, srcaddr, frmnum);
+
   /* TODO retrieve TLB CACHED frame num of accessing page(s)*/
   /* by using tlb_cache_read()/tlb_cache_write()*/
   /* frmnum is return value of tlb_cache_read/write value*/
@@ -98,6 +103,8 @@ int tlbread(struct pcb_t * proc, uint32_t source,
 
   destination = (uint32_t) data;
 
+  tlb_cache_write (proc->tlb, destination, source + offset);
+
   /* TODO update TLB CACHED with frame num of recent accessing page(s)*/
   /* by using tlb_cache_read()/tlb_cache_write()*/
 
@@ -115,10 +122,13 @@ int tlbwrite(struct pcb_t * proc, BYTE data,
 {
   int val;
   BYTE frmnum = -1;
-
+  // tlb_cache_write(proc->tlb, proc->pid, destination, data);
   /* TODO retrieve TLB CACHED frame num of accessing page(s))*/
   /* by using tlb_cache_read()/tlb_cache_write()
   frmnum is return value of tlb_cache_read/write value*/
+
+  tlb_cache_read(proc->tlb, destination + offset, frmnum);
+
 
 #ifdef IODUMP
   if (frmnum >= 0)
@@ -134,6 +144,8 @@ int tlbwrite(struct pcb_t * proc, BYTE data,
 #endif
 
   val = __write(proc, 0, destination, offset, data);
+  
+  tlb_cache_write (proc->tlb, destination, destination + offset);
 
   /* TODO update TLB CACHED with frame num of recent accessing page(s)*/
   /* by using tlb_cache_read()/tlb_cache_write()*/

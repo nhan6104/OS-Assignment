@@ -8,6 +8,7 @@
 #include "mm.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "cpu-tlbcache.c"
 
 /*enlist_vm_freerg_list - add new rg to freerg_list
  *@mm: memory region
@@ -251,15 +252,18 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 
     enlist_pgn_node(&caller->mm->fifo_pgn,pgn);
     sem_post(&caller->mram->memphylock);
+
+    #ifdef CPU_TLB
+    /* Update its online status of TLB (if needed) */
+    tlb_cache_write(caller->tlb, *fpn, pte);
+    #endif
   }
   *fpn = PAGING_FPN(pte);
   printf("Swap done\n");
   return 0;
 }
 
-#ifdef CPU_TLB
-    /* Update its online status of TLB (if needed) */
-#endif
+
 /*pg_getval - read value at given offset
  *@mm: memory region
  *@addr: virtual address to acess 

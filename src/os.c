@@ -260,7 +260,7 @@ int main(int argc, char * argv[]) {
 	start_timer();
 
 #ifdef CPU_TLB
-	struct memphy_struct tlb;
+	struct tlb_cache tlb;
 	init_tlbmemphy(&tlb, tlbsz);
 #endif
 

@@ -123,10 +123,16 @@ int tlballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index);
 int tlbfree_data(struct pcb_t *proc, uint32_t reg_index);
 int tlbread(struct pcb_t * proc, uint32_t source, uint32_t offset, uint32_t destination) ;
 int tlbwrite(struct pcb_t * proc, BYTE data, uint32_t destination, uint32_t offset);
-int init_tlbmemphy(struct memphy_struct *mp, int max_size);
+int init_tlbmemphy(struct tlb_cache *mcache, int max_size);
 int TLBMEMPHY_read(struct memphy_struct * mp, int addr, BYTE *value);
 int TLBMEMPHY_write(struct memphy_struct * mp, int addr, BYTE data);
 int TLBMEMPHY_dump(struct memphy_struct * mp);
+
+/*CPU_TLB_cache*/
+int tlb_cache_read(struct tlb_cache * mcache, uint32_t vmaddr, uint32_t *frnum);
+int tlb_cache_write(struct tlb_cache *mcache, uint32_t memphy, uint32_t memvm);
+
+
 
 /* VM prototypes */
 int pgalloc(struct pcb_t *proc, uint32_t size, uint32_t reg_index);

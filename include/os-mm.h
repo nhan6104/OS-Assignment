@@ -71,6 +71,21 @@ struct framephy_struct {
    struct mm_struct* owner;
 };
 
+struct tlb_node{
+   uint32_t memphy;
+   uint32_t memvm;
+   struct tlb_node *next;
+   struct tlb_node *prev;
+};
+
+struct  tlb_cache
+{
+   struct tlb_node *tlb_head;
+   struct tlb_node *tlb_tail;
+   int maxsize;
+   int count;
+};
+
 struct memphy_struct {
    /* Basic field of data and size */
    BYTE *storage;
