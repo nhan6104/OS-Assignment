@@ -171,7 +171,7 @@ int tlb_cache_write(struct tlb_cache *mcache, uint32_t memphy, uint32_t memvm)
    mcache->tlb_head->prev = node;
    mcache->tlb_head = node;
 
-   return 0;
+   return -1;
 }
 
 /*
