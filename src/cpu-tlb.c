@@ -77,10 +77,11 @@ int tlbfree_data(struct pcb_t *proc, uint32_t reg_index)
 int tlbread(struct pcb_t * proc, uint32_t source,
             uint32_t offset, 	uint32_t destination) 
 {
-  BYTE data, frmnum = -1;
+  BYTE data;
+  uint32_t frmnum = -1;
 	int srcaddr = source + offset;
 
-  tlb_cache_read(proc->tlb, srcaddr, frmnum);
+  tlb_cache_read(proc->tlb, srcaddr, &frmnum);
 
   /* TODO retrieve TLB CACHED frame num of accessing page(s)*/
   /* by using tlb_cache_read()/tlb_cache_write()*/
@@ -121,13 +122,13 @@ int tlbwrite(struct pcb_t * proc, BYTE data,
              uint32_t destination, uint32_t offset)
 {
   int val;
-  BYTE frmnum = -1;
+  uint32_t frmnum = -1;
   // tlb_cache_write(proc->tlb, proc->pid, destination, data);
   /* TODO retrieve TLB CACHED frame num of accessing page(s))*/
   /* by using tlb_cache_read()/tlb_cache_write()
   frmnum is return value of tlb_cache_read/write value*/
 
-  tlb_cache_read(proc->tlb, destination + offset, frmnum);
+  tlb_cache_read(proc->tlb, destination + offset, &frmnum);
 
 
 #ifdef IODUMP
