@@ -38,10 +38,18 @@ int tlb_cache_read(struct tlb_cache * mcache, uint32_t vmaddr, uint32_t *frnum)
     *      cache line by employing:
     *      direct mapped, associated mapping etc.
     */
+
+   if (mcache->tlb_head == NULL)
+   {
+      printf("Uninitialize memory region. \n");
+      return -1;
+   }
+
    struct tlb_node * ptr = mcache->tlb_head;
    while (ptr->next != NULL)
    {
-      if (ptr->memvm == vmaddr)
+      //Kiem tra du lieu da duoc ghi chua va co trung voi dia chi vat ly khong
+      if (ptr->memvm == vmaddr && ptr->writedflag == 1)
       {
          *frnum = ptr->memphy;
          
@@ -86,11 +94,18 @@ int tlb_cache_write(struct tlb_cache *mcache, uint32_t memphy, uint32_t memvm)
     *      cache line by employing:
     *      direct mapped, associated mapping etc.
     */
+   
+   if (mcache->tlb_head == NULL)
+   {
+      printf("Uninitialize memory region. \n");
+      return -1;
+   }
 
    struct tlb_node *ptrcheck = mcache->tlb_head;
    while (ptrcheck != NULL)
    {
-      if (ptrcheck->memvm == memvm)
+      // Kiem tra dia chi ao co trung va da duoc ghi truoc do chua
+      if (ptrcheck->memvm == memvm && ptrcheck->memvm == 1)
       {
 
          if (ptrcheck == mcache->tlb_tail)
@@ -110,63 +125,51 @@ int tlb_cache_write(struct tlb_cache *mcache, uint32_t memphy, uint32_t memvm)
 
          mcache->tlb_head = ptrcheck;
 
-         
-         
          return 0;
          
       }
+
       ptrcheck = ptrcheck->next;
    }
    
-   if (mcache->count >= mcache->maxsize)
+   struct tlb_node *ptr = mcache->tlb_head;
+   while (ptr != NULL)
    {
-      struct tlb_node *node = malloc(sizeof(struct tlb_node));
-      node->memphy = memphy;
-      node->memvm = memvm;
-
-   //fifo
-      node->next = mcache->tlb_head;
-      mcache->tlb_head->prev = node;
-      mcache->tlb_head = node;
-
-      struct tlb_node *tail_tlb = mcache->tlb_tail;
-      mcache->tlb_tail = mcache->tlb_tail->prev;
-      tail_tlb->next = NULL;
-      tail_tlb->prev->next = NULL;
-      
-      free(tail_tlb);
-   }
-   else
-   {
-      if (mcache->tlb_head == NULL)
+      if (ptr->writedflag == 0)
       {
-         struct tlb_node *node = malloc(sizeof(struct tlb_node));
-         node->memphy = memphy;
-         node->memvm = memvm;
+         ptr->memphy = memphy;
+         ptr->memvm = memvm;
+         ptr->writedflag = 1;
 
-         node->prev = NULL;
-         node->next = NULL;
+         //Giai phong node vua duoc ghi
+         ptr->prev->next = ptr->next;
+         ptr->next->prev = ptr->prev;
+         ptr->next = ptr->prev = NULL;
 
-         mcache->tlb_head = mcache->tlb_tail = node;
+         // Chuyen node vua luu len head
+         ptr->next = mcache->tlb_head;
+         mcache->tlb_head->prev = ptr;
+         mcache->tlb_head = ptr;
 
-         mcache->count += 1;
+         return 0;
       }
-      else
-      {
-         struct tlb_node *node = malloc(sizeof(struct tlb_node));
-         node->memphy = memphy;
-         node->memvm = memvm;
-
-         node->prev = NULL;
-
-         node->next = mcache->tlb_head;
-         mcache->tlb_head->prev = node;
-         mcache->tlb_head = node;
-
-         mcache->count += 1;
-      }
-      
+      ptr = ptr->next;
    }
+   
+   //Neu khong co vung nho trong thi xoa du lieu o cuoi danh sach va goi len dau
+   struct tlb_node *node = mcache->tlb_tail;
+   node->memphy = memphy;
+   node->memvm = memvm;
+   node->writedflag = 1;   
+
+   
+   mcache->tlb_tail = mcache->tlb_tail->prev;
+   mcache->tlb_tail->next = NULL;
+   node->next = node->prev = NULL;
+
+   node->next = mcache->tlb_head;
+   mcache->tlb_head->prev = node;
+   mcache->tlb_head = node;
 
    return 0;
 }
@@ -230,6 +233,25 @@ int init_tlbmemphy(struct tlb_cache *mcache, int max_size)
    mcache->tlb_head = mcache->tlb_tail = NULL;
    mcache->maxsize = max_size;
    mcache->count = 0;
+   mcache->freelistHead = mcache->freelistTail = NULL;
+   for (int i = 0; i < max_size; i++)
+   {
+      struct tlb_node *node = malloc(sizeof(struct tlb_node));
+      node->next = node->prev = NULL;
+
+      if (mcache->freelistHead == NULL)
+      {
+         mcache->freelistHead = mcache->freelistTail = node;
+         mcache->count ++;
+      }
+      else
+      {
+         mcache->freelistTail->next = node;
+         node->prev = mcache->freelistTail;
+         mcache->freelistTail = node;
+         mcache->count ++;
+      }
+   }
    return 0;
 }
 

@@ -39,17 +39,44 @@ int tlb_flush_tlb_of(struct pcb_t *proc, struct memphy_struct * mp)
  */
 int tlballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
 {
-  int addr, val;
-  
   /* By default using vmaid = 0 */
+  struct tlb_cache *tlb_mm = proc->tlb;
+  if (size > proc->tlb->count)
+  {
+    printf("Lack of memory region \n");
+    return -1;
+  }
 
-  init_tlbmemphy(proc->tlb, 1000);
-  val = __alloc(proc, 0, reg_index, size, &addr);
+  for (int i = 0; i < size; i++)
+  {
+    struct tlb_node *node = tlb_mm ->freelistTail;
+    proc->tlb->freelistTail = proc->tlb->freelistTail->prev;
+    proc->tlb->freelistTail->next = NULL;
+
+    //khoi tao cho vung nho duoc cap phat
+    node->next = node->prev = NULL;
+    node->reg_index = reg_index;
+    node->writedflag = 0; // danh dau duoc ghi data hay chua (0 la co 1 la chua)
+ 
+    //gan vung nho vua duoc cap phat vao cuoi 
+    if (proc->tlb->tlb_head == NULL)
+    {
+      proc->tlb->tlb_head = proc->tlb->tlb_tail = node;
+      proc->tlb->count --;
+    }
+    else
+    {
+      proc->tlb->tlb_tail->next = node;
+      node->prev = proc->tlb->tlb_tail;
+      proc->tlb->tlb_tail = node;
+      proc->tlb->count --;
+    }
+  }
 
   /* TODO update TLB CACHED frame num of the new allocated page(s)*/
   /* by using tlb_cache_read()/tlb_cache_write()*/
 
-  return val;
+  return 0;
 }
 
 /*pgfree - CPU TLB-based free a region memory
@@ -59,7 +86,50 @@ int tlballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
  */
 int tlbfree_data(struct pcb_t *proc, uint32_t reg_index)
 {
-  __free(proc, 0, reg_index);
+  struct tlb_node *ptr = proc->tlb->tlb_head;
+  if (ptr == NULL)
+  {
+    printf("Invalid memory region \n");
+    return -1;
+  }
+
+  while (ptr != NULL)
+  {
+    if (ptr->reg_index == reg_index)
+    {
+      struct tlb_node *node = ptr;
+
+      if (ptr == proc->tlb->tlb_head)
+      {
+        proc->tlb->tlb_head = proc->tlb->tlb_head->next;
+      }
+
+      if (ptr == proc->tlb->tlb_tail)
+      {
+        proc->tlb->tlb_tail = proc->tlb->tlb_tail->prev;
+
+      }
+      
+      ptr = ptr->next; // chuyen con tro hien tai den con tro ke tiep
+
+      node->writedflag = 0; // cap nhat lai trang thai khong co ghi 
+
+      //giai phong con tro hien tai
+      node->prev->next = node->next;
+      node->next->prev = node->prev;
+      node->next = node->prev = NULL;
+      
+      //Them vung nho duoc giai phong vao freelist
+      proc->tlb->freelistTail->next = node;
+      node->prev = proc->tlb->freelistTail;
+      proc->tlb->freelistTail = node;
+
+      proc->tlb->count ++;
+
+      continue;
+    }
+    ptr = ptr->next;
+  }
 
   /* TODO update TLB CACHED frame num of freed page(s)*/
   /* by using tlb_cache_rea d()/tlb_cache_write()*/
