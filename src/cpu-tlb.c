@@ -44,37 +44,42 @@ int tlballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
   int val, addr;
   /* By default using vmaid = 0 */
   struct tlb_cache *tlb_mm = proc->tlb;
-  if(size > proc->tlb->count){
-	printf("Lack of memory region \n");
-	return -1;
+  if (size > proc->tlb->count)
+  {
+    printf("Lack of memory region \n");
+    return -1;
   }
 
-  for(int i = 0; i < size; i++){
-	struct tlb_node *node = tlb_mm->freelistTail;
-	proc->tlb->freelistTail = proc->tlb->freelistTail->prev;
-	proc->tlb->freelistTail->next = NULL;
+  for (int i = 0; i < size; i++)
+  {
+    struct tlb_node *node = tlb_mm ->freelistTail;
+    proc->tlb->freelistTail = proc->tlb->freelistTail->prev;
+    proc->tlb->freelistTail->next = NULL;
 
-	//Khoi tao cho vung nho duoc cap nhat
-	node->next = node->prev = NULL;
-	node->reg_index = reg_index;
-	node->writedflag = 0;
-
-	//Gan vung nho vua duoc cap nhat vao cuoi
-	if(proc->tlb->tlb_head == NULL){
-		proc->tlb->tlb_head = proc->tlb->tlb_tail = node;
-		proc->tlb->count --;
-	}else{
-		proc->tlb->tlb_tail->next = node;
-		node->prev = proc->tlb->tlb_tail;
-		proc->tlb->tlb_tail = node;
-		proc->tlb->count --;
-	}
+    //khoi tao cho vung nho duoc cap phat
+    node->next = node->prev = NULL;
+    node->reg_index = reg_index;
+    node->writedflag = 0; // danh dau duoc ghi data hay chua (0 la co 1 la chua)
+ 
+    //gan vung nho vua duoc cap phat vao cuoi 
+    if (proc->tlb->tlb_head == NULL)
+    {
+      proc->tlb->tlb_head = proc->tlb->tlb_tail = node;
+      proc->tlb->count --;
+    }
+    else
+    {
+      proc->tlb->tlb_tail->next = node;
+      node->prev = proc->tlb->tlb_tail;
+      proc->tlb->tlb_tail = node;
+      proc->tlb->count --;
+    }
   }
+
   /* TODO update TLB CACHED frame num of the new allocated page(s)*/
   /* by using tlb_cache_read()/tlb_cache_write()*/
-  
-  val = __alloc(proc, 0, reg_index, size, &addr);
-  return val;
+
+  return 0;
 }
 
 /*pgfree - CPU TLB-based free a region memory
@@ -85,45 +90,49 @@ int tlballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
 int tlbfree_data(struct pcb_t *proc, uint32_t reg_index)
 {
   struct tlb_node *ptr = proc->tlb->tlb_head;
-  if(ptr == NULL){
-	printf("Invalid memory region\n");
-	return -1;
+  if (ptr == NULL)
+  {
+    printf("Invalid memory region \n");
+    return -1;
   }
 
-  while(ptr != NULL){
-	if(ptr->reg_index == reg_index){
-		struct tlb_node *node = ptr;
-		if(proc->tlb->tlb_head == ptr) {
-			if(proc->tlb->tlb_head == proc->tlb->tlb_tail){
-				proc->tlb->tlb_head = proc->tlb->tlb_tail = NULL;
-			}else{
-				proc->tlb->tlb_head = proc->tlb->tlb_head->next;
-				proc->tlb->tlb_head->prev = NULL;
-			}
-		}else if(ptr == proc->tlb->tlb_tail){
-			 proc->tlb->tlb_tail = proc->tlb->tlb_tail->prev;
-			 proc->tlb->tlb_tail->next = NULL;
-		}else{
-			node->next->prev = node->prev;
-			node->prev->next = node->next;
-		}
-		ptr = ptr->next;
-		node->writedflag = 0;
+  while (ptr != NULL)
+  {
+    if (ptr->reg_index == reg_index)
+    {
+      struct tlb_node *node = ptr;
 
-		//giai phong con tro hien tai
-		node->next = node->prev = NULL;
+      if (ptr == proc->tlb->tlb_head)
+      {
+        proc->tlb->tlb_head = proc->tlb->tlb_head->next;
+      }
 
-		//Them vung nho duoc gai phong vao freelist
-		proc->tlb->freelistTail->next = node;
-		node->prev = proc->tlb->freelistTail;
-		proc->tlb->freelistTail = node;
+      if (ptr == proc->tlb->tlb_tail)
+      {
+        proc->tlb->tlb_tail = proc->tlb->tlb_tail->prev;
 
-		proc->tlb->count ++;
-		continue;
-	}
-	ptr = ptr->next;
- }
- __free(proc, 0 ,reg_index);
+      }
+      
+      ptr = ptr->next; // chuyen con tro hien tai den con tro ke tiep
+
+      node->writedflag = 0; // cap nhat lai trang thai khong co ghi 
+
+      //giai phong con tro hien tai
+      node->prev->next = node->next;
+      node->next->prev = node->prev;
+      node->next = node->prev = NULL;
+      
+      //Them vung nho duoc giai phong vao freelist
+      proc->tlb->freelistTail->next = node;
+      node->prev = proc->tlb->freelistTail;
+      proc->tlb->freelistTail = node;
+
+      proc->tlb->count ++;
+
+      continue;
+    }
+    ptr = ptr->next;
+  }
 
   /* TODO update TLB CACHED frame num of freed page(s)*/
   /* by using tlb_cache_rea d()/tlb_cache_write()*/
@@ -141,11 +150,10 @@ int tlbfree_data(struct pcb_t *proc, uint32_t reg_index)
 int tlbread(struct pcb_t * proc, uint32_t source,
             uint32_t offset, 	uint32_t destination) 
 {
-  BYTE data;
-  uint32_t frmnum = -1;
-  int srcaddr = source + offset;
+  BYTE data, frmnum = -1;
+	int srcaddr = source + offset;
 
-  //tlb_cache_read(proc->tlb, srcaddr, &frmnum);
+  tlb_cache_read(proc->tlb, srcaddr, frmnum);
 
   /* TODO retrieve TLB CACHED frame num of accessing page(s)*/
   /* by using tlb_cache_read()/tlb_cache_write()*/
@@ -192,8 +200,9 @@ int tlbwrite(struct pcb_t * proc, BYTE data,
   /* by using tlb_cache_read()/tlb_cache_write()
   frmnum is return value of tlb_cache_read/write value*/
 
- // tlb_cache_read(proc->tlb, destination + offset, &frmnum);
-  
+  tlb_cache_read(proc->tlb, destination + offset, frmnum);
+
+
 #ifdef IODUMP
   if (tlb_cache_read(proc->tlb, destination + offset, &frmnum) >= 0)
     printf("TLB hit at write region=%d offset=%d value=%d\n",
