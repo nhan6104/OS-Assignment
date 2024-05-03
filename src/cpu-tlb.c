@@ -181,8 +181,8 @@ int tlbread(struct pcb_t * proc, uint32_t source,
   if (tlb_cache_read(proc->tlb, proc->pid, srcaddr, &frmnum) >= 0)
     printf("TLB hit at read region=%d offset=%d\n", 
 	         source, offset);
-  else 
-    printf("TLB miss at read region=%d offset=%d\n", 
+  else
+	printf("TLB miss at read region=%d offset=%d\n", 
 	         source, offset);
 #ifdef PAGETBL_DUMP
   print_pgtbl(proc, 0, -1); //print max TBL
@@ -193,8 +193,8 @@ int tlbread(struct pcb_t * proc, uint32_t source,
   int val = __read(proc, 0, source, offset, &data);
 
   destination = (uint32_t) data;
+  tlb_cache_write (proc->tlb, proc->pid, destination, srcaddr);
 
-  tlb_cache_write (proc->tlb, proc->pid, destination, source + offset);
 
   /* TODO update TLB CACHED with frame num of recent accessing page(s)*/
   /* by using tlb_cache_read()/tlb_cache_write()*/

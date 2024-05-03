@@ -282,7 +282,6 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
   int phyaddr = (fpn << (PAGING_ADDR_FPN_HIBIT-1)) + off;
   #ifdef CPU_TLB
   /* Update its online status of TLB (if needed) */
-  tlb_cache_write(caller->tlb, caller->pid, phyaddr, addr);
   #endif
   MEMPHY_read(caller->mram,phyaddr, data);
 

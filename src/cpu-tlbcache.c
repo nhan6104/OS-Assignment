@@ -96,7 +96,7 @@ int tlb_cache_write(struct tlb_cache *mcache,  uint32_t pid, uint32_t memphy, ui
    struct tlb_node *ptrcheck = mcache->tlb_head;
    while (ptrcheck != NULL)
    {
-      if (ptrcheck->memvm == memvm && ptrcheck->memvm == 1 && pid == ptrcheck->pid)
+      if (ptrcheck->memvm == memvm && ptrcheck->writedflag == 1 && pid == ptrcheck->pid)
       {
          ptrcheck->memphy = memphy;
          ptrcheck->memvm = memvm;
@@ -118,7 +118,8 @@ int tlb_cache_write(struct tlb_cache *mcache,  uint32_t pid, uint32_t memphy, ui
             ptrcheck->next = mcache->tlb_head;
             mcache->tlb_head->prev = ptrcheck;
             mcache->tlb_head = ptrcheck;
-		   }
+	}
+	return 0;
       }
       ptrcheck = ptrcheck->next;
    }
