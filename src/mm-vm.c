@@ -255,7 +255,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 
     #ifdef CPU_TLB
     /* Update its online status of TLB (if needed) */
-    tlb_cache_write(caller->tlb, *fpn, pte);
+    tlb_cache_write(caller->tlb, *fpn, pgn);
     #endif
   }
   *fpn = PAGING_FPN(pte);
