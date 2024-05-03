@@ -75,6 +75,8 @@ struct tlb_node{
    uint32_t memphy;
    uint32_t memvm;
    uint32_t reg_index;
+   uint32_t pid;
+   
    int writedflag;
    unsigned long  id;
 

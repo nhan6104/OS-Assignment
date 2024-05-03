@@ -129,8 +129,8 @@ int TLBMEMPHY_write(struct memphy_struct * mp, int addr, BYTE data);
 int TLBMEMPHY_dump(struct memphy_struct * mp);
 
 /*CPU_TLB_cache*/
-int tlb_cache_read(struct tlb_cache * mcache, uint32_t vmaddr, uint32_t *frnum);
-int tlb_cache_write(struct tlb_cache *mcache, uint32_t memphy, uint32_t memvm);
+int tlb_cache_read(struct tlb_cache * mcache, uint32_t pid, uint32_t vmaddr, uint32_t *frnum);
+int tlb_cache_write(struct tlb_cache *mcache,  uint32_t pid, uint32_t memphy, uint32_t memvm);
 
 
 
