@@ -74,6 +74,10 @@ struct framephy_struct {
 struct tlb_node{
    uint32_t memphy;
    uint32_t memvm;
+   uint32_t reg_index;
+   int writedflag;
+   unsigned long  id;
+
    struct tlb_node *next;
    struct tlb_node *prev;
 };
@@ -82,6 +86,9 @@ struct  tlb_cache
 {
    struct tlb_node *tlb_head;
    struct tlb_node *tlb_tail;
+
+   struct tlb_node *freelistHead;
+   struct tlb_node *freelistTail;
    int maxsize;
    int count;
 };

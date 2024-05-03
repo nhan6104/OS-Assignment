@@ -104,14 +104,14 @@ int vmap_page_range(struct pcb_t *caller, // process call
   init_pte(pte, 1, 1, 0, 0, 0, 0);
   for(; pgit < pgnum; pgit++){
     fpn = fpit->fpn;
-    printf("Free frame is: %d\n", fpn);
+    //printf("Free frame is: %d\n", fpn);
     pte_set_swap(pte, 0, 0);
     pte_set_fpn(pte, fpn);
 
     caller->mm->pgd[pgn + pgit] = *pte;
-    printf("Mapped region [%ld->",ret_rg->rg_end);
+    //printf("Mapped region [%ld->",ret_rg->rg_end);
     ret_rg->rg_end += PAGING_PAGESZ;
-    printf("%ld] to frame %d with address %08x\n",ret_rg->rg_end,fpn,*pte);
+    //printf("%ld] to frame %d with address %08x\n",ret_rg->rg_end,fpn,*pte);
     fpit = fpit->fp_next;
     
     enlist_pgn_node(&caller->mm->fifo_pgn, pgn+pgit);  
@@ -136,7 +136,7 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
 {
   int pgit, fpn;
   struct framephy_struct *newfp_str;
-  printf("alloc_pages_range: %d\n", req_pgnum);
+  //printf("alloc_pages_range: %d\n", req_pgnum);
   for(pgit = 0; pgit < req_pgnum; pgit++)
   {
     if(MEMPHY_get_freefp(caller->mram, &fpn) == 0)

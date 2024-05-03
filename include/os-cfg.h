@@ -5,10 +5,9 @@
 #define MAX_PRIO 140
 
 #define CPU_TLB
-#define CPUTLB_FIX_TLBSZ
 #define MM_PAGING
 //#define CPUTLB_FIXED_TLBSZ
-//#define MM_FIXED_MEMSZ
+#define MM_FIXED_MEMSZ
 #define VMDBG 1
 #define MMDBG 1
 #define IODUMP 1

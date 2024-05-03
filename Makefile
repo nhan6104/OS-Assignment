@@ -1,4 +1,3 @@
-
 INC = -Iinclude
 LIB = -lpthread
 
@@ -17,8 +16,16 @@ vpath %.h $(INCLUDE)
 MAKE = $(CC) $(INC) 
 
 # Object files needed by modules
-MEM_OBJ = $(addprefix $(OBJ)/, paging.o mem.o cpu.o loader.o)
-OS_OBJ = $(addprefix $(OBJ)/, cpu.o mem.o loader.o queue.o os.o sched.o timer.o mm-vm.o mm.o mm-memphy.o)
+#MEM_OBJ = $(addprefix $(OBJ)/, paging.o mem.o cpu.o loader.o)
+#TLB_OBJ = $(addprefix $(OBJ)/, cpu-tlb.o cpu-tlbcache.o)
+#OS_OBJ = $(addprefix $(OBJ)/, os.o sched.o timer.o mm-vm.o mm.o mm-memphy.o loader.o queue.o cpu.o)
+#MEM_OBJ = $(addprefix $(OBJ)/, paging.o mem.o cpu.o loader.o)
+#TLB_OBJ = $(addprefix $(OBJ)/, cpu-tlb.o cpu-tlbcache.o)
+#OS_OBJ = $(addprefix $(OBJ)/, cpu.o cpu-tlb.o cpu-tlbcache.o mem.o loader.o queue.o os.o sched.o timer.o mm.o mm-vm.o  mm-memphy.o)
+#SCHED_OBJ = $(addprefix $(OBJ)/, cpu.o loader.o)
+#HEADER = $(wildcard $(INCLUDE)/*.h)
+MEM_OBJ = $(addprefix $(OBJ)/, paging.o mem.o cpu.o loader.o cpu-tlbcache.o cpu-tlb.o)
+OS_OBJ = $(addprefix $(OBJ)/, cpu.o mem.o loader.o queue.o os.o sched.o timer.o mm-vm.o mm.o mm-memphy.o cpu-tlb.o)
 SCHED_OBJ = $(addprefix $(OBJ)/, cpu.o loader.o)
 HEADER = $(wildcard $(INCLUDE)/*.h)
 
@@ -26,8 +33,8 @@ all: os
 #mem sched os
 
 # Just compile memory management modules
-mem: $(MEM_OBJ)
-	$(MAKE) $(LFLAGS) $(MEM_OBJ) -o mem $(LIB)
+mem: $(MEM_OBJ) $(TLB_OBJ)
+	$(MAKE) $(LFLAGS) $(MEM_OBJ) $(TLB_OBJ) -o mem $(LIB)
 
 # Just compile scheduler
 sched: $(SCHED_OBJ)

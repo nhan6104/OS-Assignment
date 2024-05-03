@@ -27,7 +27,7 @@ static int memswpsz[PAGING_MAX_MMSWP];
 
 struct mmpaging_ld_args {
 	/* A dispatched argument struct to compact many-fields passing to loader */
-	struct memphy_struct *tlb;
+	struct tlb_cache *tlb;
 	struct memphy_struct *mram;
 	struct memphy_struct **mswp;
 	struct memphy_struct *active_mswp;
@@ -120,6 +120,10 @@ static void * ld_routine(void * args) {
 	struct memphy_struct** mswp = ((struct mmpaging_ld_args *)args)->mswp;
 	struct memphy_struct* active_mswp = ((struct mmpaging_ld_args *)args)->active_mswp;
 	struct timer_id_t * timer_id = ((struct mmpaging_ld_args *)args)->timer_id;
+#ifdef CPU_TLB
+	struct tlb_cache* tlb = ((struct mmpaging_ld_args *)args)->tlb;
+
+#endif
 #else
 	struct timer_id_t * timer_id = (struct timer_id_t*)args;
 #endif
@@ -143,6 +147,10 @@ static void * ld_routine(void * args) {
 		proc->mswp = mswp;
 		proc->active_mswp = active_mswp;
 		sem_init(&proc->mm->memlock, 0, 1);
+#ifdef CPU_TLB
+		proc->tlb = tlb;
+
+#endif
 #endif
 		printf("\tLoaded a process at %s, PID: %d PRIO: %ld\n",
 			ld_processes.path[i], proc->pid, ld_processes.prio[i]);
@@ -293,7 +301,7 @@ int main(int argc, char * argv[]) {
         /* In MM_PAGING employ CPU_TLB mode, it needs passing
          * the system tlb to each PCB through loader
         */
-        mm_ld_args->tlb = (struct memphy_struct *) &tlb;
+        mm_ld_args->tlb = (struct tlb_cache *) &tlb;
 #endif
 #endif
 
