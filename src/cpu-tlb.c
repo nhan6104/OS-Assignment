@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2024 pdnguyen of the HCMC University of Technology
  */
@@ -25,13 +26,38 @@ int tlb_change_all_page_tables_of(struct pcb_t *proc,  struct memphy_struct * mp
   return 0;
 }
 
-int tlb_flush_tlb_of(struct pcb_t *proc, struct memphy_struct * mp)
+int tlb_flush_tlb_of(struct tlb_cache *flush)
 {
   /* TODO flush tlb cached*/
-  for(int i = 0; i < 10; i++){
-	tlbfree_data(proc,i);
-  }
-  return 0;
+   struct tlb_node * ptr;
+   printf("Flush cache:\n");
+   while( flush->tlb_head != NULL){
+	if(flush->tlb_head->writedflag == 1) 
+		printf("memphy: %5d  memv: %5d  pid: %d\n",flush->tlb_head->memphy,flush->tlb_head->memvm,flush->tlb_head->pid);
+	if(flush->tlb_head == flush->tlb_tail){
+		flush->tlb_tail = NULL;
+		free(flush->tlb_head);
+		flush->tlb_head = NULL;
+	}else{
+		ptr = flush->tlb_head;
+		flush->tlb_head = flush->tlb_head->next;
+		free(ptr);
+	}
+   }
+  
+   while(flush->freelistHead != NULL){
+	if(flush->freelistHead == flush->freelistTail){
+		flush->freelistTail = NULL;
+		free(flush->freelistHead);
+		flush->freelistHead = NULL;
+	}else{
+		ptr = flush->freelistHead;
+		flush->freelistHead = flush->freelistHead->next;
+		free(ptr);
+	}
+   }
+  
+   return 0;
 }
 
 /*tlballoc - CPU TLB-based allocate a region memory

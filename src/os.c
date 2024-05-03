@@ -19,6 +19,7 @@ static int done = 0;
 
 #ifdef CPU_TLB
 static int tlbsz;
+struct tlb_cache * flush;
 #endif
 
 #ifdef MM_PAGING
@@ -72,6 +73,7 @@ static void * cpu_routine(void * args) {
 			/* The porcess has finish it job */
 			printf("\tCPU %d: Processed %2d has finished\n",
 				id ,proc->pid);
+			
 			free(proc);
 			usleep(3);
 			proc = get_proc();
@@ -89,6 +91,9 @@ static void * cpu_routine(void * args) {
 		if (proc == NULL && done) {
 			/* No process to run, exit */
 			printf("\tCPU %d stopped\n", id);
+			#ifdef CPU_TLB
+				tlb_flush_tlb_of(flush);
+			#endif
 			break;
 		}else if (proc == NULL) {
 			/* There may be new processes to run in
@@ -122,6 +127,7 @@ static void * ld_routine(void * args) {
 	struct timer_id_t * timer_id = ((struct mmpaging_ld_args *)args)->timer_id;
 #ifdef CPU_TLB
 	struct tlb_cache* tlb = ((struct mmpaging_ld_args *)args)->tlb;
+	if(flush == NULL) flush = ((struct mmpaging_ld_args *)args)->tlb;
 
 #endif
 #else
