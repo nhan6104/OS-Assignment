@@ -32,7 +32,7 @@
  *  @pgnum: page number
  *  @value: obtained value
  */
-int tlb_cache_read(struct tlb_cache * mcache, uint32_t vmaddr, uint32_t *frnum)
+int tlb_cache_read(struct tlb_cache * mcache, uint32_t pid, uint32_t vmaddr, uint32_t *frnum)
 {
    /* TODO: the identify info is mapped to 
     *      cache line by employing:
@@ -45,7 +45,7 @@ int tlb_cache_read(struct tlb_cache * mcache, uint32_t vmaddr, uint32_t *frnum)
    struct tlb_node * ptr = mcache->tlb_head;
    while (ptr != NULL)
    {
-      if (ptr->memvm == vmaddr && ptr->writedflag == 1)
+      if (ptr->memvm == vmaddr && ptr->writedflag == 1 && ptr->pid == pid)
       {
          *frnum = ptr->memphy;
          // neu vi tri nao duoc goi se nhay len dau dam bao viec kien truc LRU
@@ -83,7 +83,7 @@ int tlb_cache_read(struct tlb_cache * mcache, uint32_t vmaddr, uint32_t *frnum)
  *  @pgnum: page number
  *  @value: obtained value
  */
-int tlb_cache_write(struct tlb_cache *mcache, uint32_t memphy, uint32_t memvm)
+int tlb_cache_write(struct tlb_cache *mcache,  uint32_t pid, uint32_t memphy, uint32_t memvm)
 {
    /* TODO: the identify info is mapped to 
     *      cache line by employing:
@@ -96,39 +96,29 @@ int tlb_cache_write(struct tlb_cache *mcache, uint32_t memphy, uint32_t memvm)
    struct tlb_node *ptrcheck = mcache->tlb_head;
    while (ptrcheck != NULL)
    {
-      if (ptrcheck->memvm == memvm && ptrcheck->memvm == 1)
-      {	 
-	 if(ptrcheck == mcache->tlb_head){
-		 return 0;
-	 }
-	 if(mcache->count == 2){
-		mcache->tlb_head = mcache->tlb_tail;
-		mcache->tlb_head->prev = NULL;
-		mcache->tlb_head->next = ptrcheck;
-		mcache->tlb_tail = ptrcheck;
-		mcache->tlb_tail->next = NULL;
-		mcache->tlb_tail->prev = mcache->tlb_head;
-	 }
-         if (ptrcheck == mcache->tlb_tail)
-         {
-            mcache->tlb_tail = ptrcheck->prev;
-            mcache->tlb_tail->next = NULL;
-         }
-
-
-	         ptrcheck->memphy = memphy;
-
-	         ptrcheck->prev->next = ptrcheck->next;
-	      	 ptrcheck->next->prev =ptrcheck->prev;
-
-	         ptrcheck->prev = NULL;
-        	 ptrcheck->next = mcache->tlb_head;
-        	 mcache->tlb_head->prev = ptrcheck;
-
-        	 mcache->tlb_head = ptrcheck;
-	
-
-         return 0;
+      if (ptrcheck->memvm == memvm && ptrcheck->memvm == 1 && pid == ptrcheck->pid)
+      {
+         ptrcheck->memphy = memphy;
+         ptrcheck->memvm = memvm;
+         ptrcheck->pid = pid;
+         ptrcheck->writedflag = 1;
+		
+         if(ptrcheck != mcache->tlb_head){
+            if(ptrcheck == mcache->tlb_tail){
+               ptrcheck->prev->next = NULL;
+               mcache->tlb_tail = ptrcheck->prev;
+               ptrcheck->prev = NULL;
+            }else{
+				//Giai phong node vua duowc ghi
+				ptrcheck->prev->next = ptrcheck->next;
+				ptrcheck->next->prev = ptrcheck->prev;
+				ptrcheck->next = ptrcheck->prev = NULL;
+            }
+            //Chuyen node vua luu len head
+            ptrcheck->next = mcache->tlb_head;
+            mcache->tlb_head->prev = ptrcheck;
+            mcache->tlb_head = ptrcheck;
+		   }
       }
       ptrcheck = ptrcheck->next;
    }
@@ -138,6 +128,7 @@ int tlb_cache_write(struct tlb_cache *mcache, uint32_t memphy, uint32_t memvm)
 	if(ptr->writedflag == 0){
 		ptr->memphy = memphy;
 		ptr->memvm = memvm;
+      ptr->pid = pid;
 		ptr->writedflag = 1;
 		
 		if(ptr != mcache->tlb_head){
@@ -165,6 +156,7 @@ int tlb_cache_write(struct tlb_cache *mcache, uint32_t memphy, uint32_t memvm)
    struct tlb_node *node = mcache->tlb_tail;
    node->memphy = memphy;
    node->memvm = memvm;
+   node->pid = pid;
    node->writedflag = 1;
 
    mcache->tlb_tail = mcache->tlb_tail->prev;

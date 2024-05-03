@@ -253,10 +253,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     enlist_pgn_node(&caller->mm->fifo_pgn,pgn);
     sem_post(&caller->mram->memphylock);
 
-    #ifdef CPU_TLB
-    /* Update its online status of TLB (if needed) */
-    tlb_cache_write(caller->tlb, *fpn, pgn);
-    #endif
+
   }
   *fpn = PAGING_FPN(pte);
   printf("Swap done\n");
@@ -281,9 +278,12 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
   /* Get the page to MEMRAM, swap from MEMSWAP if needed */
   if(pg_getpage(mm, pgn, &fpn, caller) != 0) 
     return -1; /* invalid page access */
-  
-  int phyaddr = (fpn << (PAGING_ADDR_FPN_HIBIT-1)) + off;
 
+  int phyaddr = (fpn << (PAGING_ADDR_FPN_HIBIT-1)) + off;
+  #ifdef CPU_TLB
+  /* Update its online status of TLB (if needed) */
+  tlb_cache_write(caller->tlb, caller->pid, phyaddr, addr);
+  #endif
   MEMPHY_read(caller->mram,phyaddr, data);
 
   return 0;
@@ -305,6 +305,7 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
   if(pg_getpage(mm, pgn, &fpn, caller) != 0) 
     return -1; /* invalid page access */
   int phyaddr = (fpn << (PAGING_ADDR_FPN_HIBIT-1)) + off;
+
   //printf("phyaddr %d\n", phyaddr);
   sem_wait(&caller->mram->memphylock);
   MEMPHY_write(caller->mram,phyaddr, value);
