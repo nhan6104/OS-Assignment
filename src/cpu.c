@@ -2,7 +2,6 @@
 #include "cpu.h"
 #include "mem.h"
 #include "mm.h"
-#include "os-cfg.h"
 
 int calc(struct pcb_t * proc) {
 	return ((unsigned long)proc & 0UL);
@@ -60,7 +59,7 @@ int run(struct pcb_t * proc) {
 		stat = calc(proc);
 		break;
 	case ALLOC:
-#ifdef CPU_TLB
+#ifdef CPU_TLB 
 		stat = tlballoc(proc, ins.arg_0, ins.arg_1);
 #elif defined(MM_PAGING)
 		stat = pgalloc(proc, ins.arg_0, ins.arg_1);
