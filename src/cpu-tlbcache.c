@@ -39,7 +39,7 @@ int tlb_cache_read(struct tlb_cache * mcache, uint32_t pid, uint32_t vmaddr, uin
     *      direct mapped, associated mapping etc.
     */
    if(mcache->tlb_head == NULL){
-	printf("Uninitial memory region \n");
+	printf("Uninitial memory region at pid=%d\n", pid);
 	return -1;
    }
    struct tlb_node * ptr = mcache->tlb_head;
@@ -90,7 +90,7 @@ int tlb_cache_write(struct tlb_cache *mcache,  uint32_t pid, uint32_t memphy, ui
     *      direct mapped, associated mapping etc.
     */
    if(mcache->tlb_head == NULL){
-	printf("Uninitial memory region \n");
+	printf("Uninitial memory region at pid=%d\n",pid);
 	return -1;
    }
    struct tlb_node *ptrcheck = mcache->tlb_head;

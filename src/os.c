@@ -20,6 +20,7 @@ static int done = 0;
 #ifdef CPU_TLB
 static int tlbsz;
 struct tlb_cache * flush;
+struct memphy_struct * flushmp;
 #endif
 
 #ifdef MM_PAGING
@@ -73,7 +74,7 @@ static void * cpu_routine(void * args) {
 			/* The porcess has finish it job */
 			printf("\tCPU %d: Processed %2d has finished\n",
 				id ,proc->pid);
-			
+			flushmp = proc->mram;
 			free(proc);
 			usleep(3);
 			proc = get_proc();
@@ -91,9 +92,11 @@ static void * cpu_routine(void * args) {
 		if (proc == NULL && done) {
 			/* No process to run, exit */
 			printf("\tCPU %d stopped\n", id);
-			#ifdef CPU_TLB
-				tlb_flush_tlb_of(flush);
-			#endif
+//			if(id == num_cpus - 1){
+//				#ifdef CPU_TLB
+//					tlb_flush_tlb_of(flush,flushmp);
+//				#endif
+//			}
 			break;
 		}else if (proc == NULL) {
 			/* There may be new processes to run in
@@ -332,6 +335,11 @@ int main(int argc, char * argv[]) {
 	}
 	pthread_join(ld, NULL);
 
+	if(done){
+		#ifdef CPU_TLB
+                tlb_flush_tlb_of(flush,flushmp);
+        #endif
+	}
 	/* Stop timer */
 	stop_timer();
 
