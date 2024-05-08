@@ -305,8 +305,9 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
     return -1; /* invalid page access */
   int phyaddr = (fpn << (PAGING_ADDR_FPN_HIBIT-1)) + off;
 
+  #ifdef CPU_TLB
   tlb_cache_write(caller->tlb,caller->pid,phyaddr, addr);
-
+  #endif
   //printf("phyaddr %d\n", phyaddr);
   sem_wait(&caller->mram->memphylock);
   MEMPHY_write(caller->mram,phyaddr, value);
