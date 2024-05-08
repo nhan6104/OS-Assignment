@@ -282,6 +282,7 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
   int phyaddr = (fpn << (PAGING_ADDR_FPN_HIBIT-1)) + off;
   #ifdef CPU_TLB
   /* Update its online status of TLB (if needed) */
+    tlb_cache_write (caller->tlb, caller->pid, phyaddr, addr);
   #endif
   MEMPHY_read(caller->mram,phyaddr, data);
 
@@ -304,6 +305,8 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
   if(pg_getpage(mm, pgn, &fpn, caller) != 0) 
     return -1; /* invalid page access */
   int phyaddr = (fpn << (PAGING_ADDR_FPN_HIBIT-1)) + off;
+
+  tlb_cache_write (caller->tlb, caller->pid, phyaddr, addr);
 
   //printf("phyaddr %d\n", phyaddr);
   sem_wait(&caller->mram->memphylock);
@@ -376,6 +379,8 @@ int __write(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE value)
   if(currg == NULL || cur_vma == NULL) /* Invalid memory identify */
 	  return -1;
   
+  // tlb_cache_write (proc->tlb, proc->pid, destination, destination + offset);
+
   pg_setval(caller->mm, currg->rg_start + offset, value, caller);
   
   return 0;

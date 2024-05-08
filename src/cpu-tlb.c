@@ -179,11 +179,11 @@ int tlbread(struct pcb_t * proc, uint32_t source,
 	
 #ifdef IODUMP
   if (tlb_cache_read(proc->tlb, proc->pid, srcaddr, &frmnum) >= 0)
-    printf("TLB hit at read region=%d offset=%d\n", 
-	         source, offset);
+    printf("TLB hit at read region=%d offset=%d pid=%d\n ", 
+	         source, offset, proc->pid);
   else
-	printf("TLB miss at read region=%d offset=%d\n", 
-	         source, offset);
+	printf("TLB miss at read region=%d offset=%d pid=%d\n", 
+	         source, offset, proc->pid);
 #ifdef PAGETBL_DUMP
   print_pgtbl(proc, 0, -1); //print max TBL
 #endif
@@ -222,11 +222,11 @@ int tlbwrite(struct pcb_t * proc, BYTE data,
   
 #ifdef IODUMP
   if (tlb_cache_read(proc->tlb, proc->pid, destination + offset, &frmnum) >= 0)
-    printf("TLB hit at write region=%d offset=%d value=%d\n",
-	          destination, offset, data);
+    printf("TLB hit at write region=%d offset=%d value=%d pid=%d\n",
+	          destination, offset, data, proc->pid);
 	else
-    printf("TLB miss at write region=%d offset=%d value=%d\n",
-            destination, offset, data);
+    printf("TLB miss at write region=%d offset=%d value=%d pid=%d\n",
+            destination, offset, data, proc->pid);
 #ifdef PAGETBL_DUMP
   print_pgtbl(proc, 0, -1); //print max TBL
 #endif
@@ -235,7 +235,6 @@ int tlbwrite(struct pcb_t * proc, BYTE data,
 
   val = __write(proc, 0, destination, offset, data);
   
-  tlb_cache_write (proc->tlb, proc->pid, destination, destination + offset);
 
   /* TODO update TLB CACHED with frame num of recent accessing page(s)*/
   /* by using tlb_cache_read()/tlb_cache_write()*/
