@@ -117,7 +117,7 @@ int tlbfree_data(struct pcb_t *proc, uint32_t reg_index)
   }
 
   while(ptr != NULL){
-	if(ptr->reg_index == reg_index){
+	if(ptr->reg_index == reg_index && ptr->pid == proc->pid){
 		struct tlb_node *node = ptr;
 		if(proc->tlb->tlb_head == ptr) {
 			if(proc->tlb->tlb_head == proc->tlb->tlb_tail){

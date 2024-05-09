@@ -98,20 +98,20 @@ int vmap_page_range(struct pcb_t *caller, // process call
    *      [addr to addr + pgnum*PAGING_PAGESZ
    *      in page table caller->mm->pgd[]
    */
-  //printf("frames->fpn: %d\n", frames->fpn);
+  printf("frames->fpn: %d\n", frames->fpn);
   
   uint32_t* pte = malloc(sizeof(uint32_t));
   init_pte(pte, 1, 1, 0, 0, 0, 0);
   for(; pgit < pgnum; pgit++){
     fpn = fpit->fpn;
-    //printf("Free frame is: %d\n", fpn);
+    printf("Free frame is: %d\n", fpn);
     pte_set_swap(pte, 0, 0);
     pte_set_fpn(pte, fpn);
 
     caller->mm->pgd[pgn + pgit] = *pte;
-    //printf("Mapped region [%ld->",ret_rg->rg_end);
+    printf("Mapped region [%ld->",ret_rg->rg_end);
     ret_rg->rg_end += PAGING_PAGESZ;
-    //printf("%ld] to frame %d with address %08x\n",ret_rg->rg_end,fpn,*pte);
+    printf("%ld] to frame %d with address %08x\n",ret_rg->rg_end,fpn,*pte);
     fpit = fpit->fp_next;
     
     enlist_pgn_node(&caller->mm->fifo_pgn, pgn+pgit);  
