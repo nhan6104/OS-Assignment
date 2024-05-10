@@ -219,7 +219,6 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     
     int vicpgn, swpfpn; 
     int vicfpn;
-    uint32_t vicpte;
 
     int tgtfpn = PAGING_SWP(pte);//the target frame storing our variable
 
@@ -230,7 +229,6 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     /* Get free frame in MEMSWP */
     MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
 
-    vicpte = caller->mm->pgd[vicpgn];
     vicfpn = PAGING_FPN(vicpgn);
 
     /* Do swap frame from MEMRAM to MEMSWP and vice versa*/
@@ -244,7 +242,6 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     
 
     /* Update page table */
-    pte_set_swap(&vicpte, 1,0);
 
     /* Update its online status of the target page */
     //pte_set_fpn() & mm->pgd[pgn];
